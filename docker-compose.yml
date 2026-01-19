@@ -1,0 +1,11 @@
+version: '1.0'
+
+services:
+  # Pokemon API - Simple Express server
+  api:
+    build: ./pokemon-api 
+    container_name: pokemon-api
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
