@@ -1,0 +1,17 @@
+# Prometheus configuration file
+
+global:
+  scrape_interval: 15s # How often to scrape targets 
+  evaluation_interval: 15s # How often to evaluate rules 
+
+# Scrape configuration
+scrape_configs:
+  # Prometheus scrapes itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # cAdvisor - Docker container metrics
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']

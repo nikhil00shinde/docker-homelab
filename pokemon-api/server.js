@@ -151,9 +151,7 @@ app.get('/pokemon', async (req, res) => {
 
     const result = await pool.query('SELECT *FROM pokemon ORDER BY caught_at DESC');
   
-    console.log("Starting");
     await redisClient.set(cacheKey, JSON.stringify(result.rows));
-   console.log("Reached")
     res.json({
       total: result.rows.length,
       data: result.rows,
