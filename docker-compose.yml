@@ -96,10 +96,23 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
     restart: unless-stopped
+   
+
+  # Portainer - Docker Management UI 
+  portainer: 
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    ports:
+      - "9443:9443" # HTTPS
+      - "9000:9000" # HTTP 
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data 
+    restart: unless-stopped
 
 # Named volums for data persistence
 volumes:
   postgres_data:
   grafana_data:
   prometheus_data:
-
+  portainer_data: 
