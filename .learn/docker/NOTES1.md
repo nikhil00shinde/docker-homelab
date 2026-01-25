@@ -12,6 +12,35 @@
 - Container should be `immutable` and `ephermeral`.
 `docker commit:` - It is used to create a new image from a container's current state, which can be useful for debugging or creating snapshots during development.
 
+### Understand the architecture
+```
+Kernel
+|
+|
+/
+
+containerd
+|
+|
+/
+docker daemon
+|
+|
+/
+
+docker cli, docker gui
+```
+
+Check `systemctl status docker`, you will understand thing that how docker create a container, how it interact with different component.
+
+We need to add user to docker group to access the daemon.
+`usermod -aG docker $USER`
+`sudo newgrp docker` --> to update the group 
+
+
+Dockerfile (creates) --> Image (creates) --> Containers
+
+
 
 
 ### Setup
