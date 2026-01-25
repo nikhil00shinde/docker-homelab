@@ -19,17 +19,18 @@ Kernel
 |
 /
 
-containerd
+containerd (It is a container runtime that manages the lifecyle of containers)
 |
 |
 /
-docker daemon
+docker daemon (It manages the entire Docker environment, including images, container, and networks.)
 |
 |
 /
 
 docker cli, docker gui
-```
+``` 
+It runs on local docker engine (host machine)
 
 Check `systemctl status docker`, you will understand thing that how docker create a container, how it interact with different component.
 
@@ -38,10 +39,54 @@ We need to add user to docker group to access the daemon.
 `sudo newgrp docker` --> to update the group 
 
 
-Dockerfile (creates) --> Image (creates) --> Containers
+Dockerfile (build) --> Image (run) --> Containers
+
+
+Build tool -- Java (maven) , javascript (npm), Python (pip)
+
+
+Dockerfile Structure SYNTAX
+- FROM : base image
+- WORKDIR : working directory 
+- COPY : copy files from host machine
+- RUN : library installed ho jaye (build krne ke liye) (execute ho ke bnd ho jata hain)
+- EXPOSE : 8000 expose krdo application at port number.
+- CMD : application serve ho jaye
+- ENTRYPOINT : cmd alternate (override nhi kr skte)
+```
+# 1. Base Image (OS)
+FROM openjdk:17-jdk-alpine
+
+# 2 working directory for the application
+WORKDIR /app 
+
+# 3 copy the code from your HOST to your container (working dir)
+COPY src/Main.java /app/Main.java
+
+COPY quotes.txt quotes.txt 
+
+# 4 Run the commands to install libs or to compile
+RUN javac Main.java
+
+# 5 Expose the port 
+EXPOSE 8000 
+
+# 6 Serve the app / keep it running 
+CMD ["java", "Main"]
+```
+
+RUN executes the command at build time, while CMD specifies the default command at container runtime.
 
 
 
+> Platform compatible
+>> `docker build -t java-open:latest --platform=linux/amd64`
+
+> Remove stopped container
+>> `docker system prune`
+
+> Check logs
+>> `docker logs <id>`
 
 ### Setup
 > Check Docker version
@@ -110,5 +155,6 @@ exit
 >> `docker run -d --name pokemon-api -p 3000:3000 pokemon-api`
 
 
-
+> Tag the image
+>> `docker build -t java-ap:latest .`
 
