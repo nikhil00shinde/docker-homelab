@@ -1,53 +1,25 @@
-version: "3.8"
-
-
 networks:
   pokedex:
     name: pokedex_network
 
-
 services:
-  # Traefik - Reverse Proxy
-  traefik:
-    image: traefik:v2.10
-    container_name: traefik
-    command:
-      # Enable Docker provider
-      - "--providers.docker=true"
-      - "--providers.docker.network=pokedex_network"
-      - "--providers.docker.exposedbydefault=false"
-
-      # HTTP entrypoint
-      - "--entrypoints.web.address=:80"
-      # Enable Traefik dashboard
-      - "--api.dashboard=true"
-      - "--api.insecure=true"
-      # logging
-      - "--log.level=INFO"
-    ports:
-      - "80:80"
-      - "8080:8080"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro 
-    networks:
-      - pokedex
-    restart: unless-stopped
-
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: pokedex_db
+    container_name: pokedex-db
     environment:
       POSTGRES_DB: pokedex 
       POSTGRES_USER: trainer
       POSTGRES_PASSWORD: pokemon123
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
     networks:
       - pokedex    
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U trainer -d pokedex"]
-      interval: 5s 
+      interval: 5s
       timeout: 3s 
       retries: 5 
     restart: unless-stopped
@@ -56,6 +28,8 @@ services:
   redis:
     image: redis:7-alpine
     container_name: pokedex-cache
+    ports:
+      - "6379:6379"
     networks:
       - pokedex
     healthcheck:
@@ -65,9 +39,10 @@ services:
       retries: 5 
     restart: unless-stopped
   
-  # Pokemon API - Simple Express server
+  # Pokemon API
   api:
-    build: ./pokemon-api 
+    build:
+      context: ./pokemon-api
     container_name: pokemon-api
     environment:
       DB_HOST: postgres
@@ -75,6 +50,10 @@ services:
       DB_NAME: pokedex
       DB_USER: trainer
       DB_PASSWORD: pokemon123
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "3000:3000"
     networks:
       - pokedex
     depends_on:
@@ -83,19 +62,13 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
-    labels:
-      # Enable Traefik
-      - "traefik.enable=true"
-      # Router
-      - "traefik.http.routers.api.rule=Host(`api.localhost`)"
-      - "traefik.http.routers.api.entrypoints=web"
-      # service 
-      - "traefik.http.services.api.loadbalancer.server.port=3000"
- 
-  # cAdvisor - container metrics collector - NEW!
+
+  # cAdvisor - Container metrics
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: cadvisor
+    ports:
+      - "8081:8080"
     networks:
       - pokedex
     volumes:
@@ -103,76 +76,59 @@ services:
       - /var/run:/var/run:ro 
       - /sys:/sys:ro 
       - /var/lib/docker/:/var/lib/docker:ro 
-    restart: unless-stopped
     privileged: true
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.cadvisor.rule=Host(`cadvisor.localhost`)"
-      - "traefik.http.routers.cadvisor.entrypoints=web"
-      - "traefik.http.services.cadvisor.loadbalancer.server.port=8080"
+    restart: unless-stopped
 
-
-  # Prometheus - Metrics storage - NEW!
+  # Prometheus - Metrics storage
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
+    ports:
+      - "9090:9090"
     networks:
-        - pokedex
+      - pokedex
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
     restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.prometheus.rule=Host(`prometheus.localhost`)"
-      - "traefik.http.routers.prometheus.entrypoints=web"
-      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
 
-
-  # Grafana
+  # Grafana - Visualization
   grafana:
     image: grafana/grafana:10.2.0
     container_name: grafana
+    ports:
+      - "3001:3000"
     networks:
-        - pokedex
+      - pokedex
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
     restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=Host(`grafana.localhost`)"
-      - "traefik.http.routers.grafana.entrypoints=web"
-      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
-   
 
-  # Portainer - Docker Management UI 
+  # Portainer - Docker Management
   portainer: 
     image: portainer/portainer-ce:latest
     container_name: portainer
+    ports:
+      - "9000:9000"
+      - "9443:9443"
     networks:
-        - pokedex 
+      - pokedex 
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data 
     restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.portainer.rule=Host(`portainer.localhost`)"
-      - "traefik.http.routers.portainer.entrypoints=web"
-      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
 
-# Named volums for data persistence
 volumes:
   postgres_data:
   grafana_data:
   prometheus_data:
-  portainer_data: 
+  portainer_data:
