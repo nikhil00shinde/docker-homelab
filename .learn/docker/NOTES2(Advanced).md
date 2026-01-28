@@ -186,3 +186,19 @@ volumes: # Ye wala volume create kiya hain
 networks:
   twotier:
 ```
+
+
+
+
+### Docker Scout 
+Docker Scout scans your container images and tells you:
+    Are there known security vulnerabilities inside this image, and how bad are they?
+Image vulnerabilities & SBOM
+```
+docker scout version
+docker scout login
+docker scout quickview pokemon-api
+docker scout cves pokemon-api
+docker scout cves pokemon-api --only-severity critical
+docker scout recommendations pokemon-api
+```
